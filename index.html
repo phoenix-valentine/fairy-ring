@@ -1,0 +1,1155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Fly Pip's trail of fairies in loops around iron bugs, chain rings for streaks, and last until dawn.">
+<title>Fairy Ring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Nunito:wght@400;700;800&display=swap">
+<style>
+/* Layout: one full-height moonlit meadow (the canvas) inside the page gutter, with storybook title cards floating over it. A single night look, chosen on purpose. */
+:root {
+  --night: #16213f;
+  --night-deep: #0b1226;
+  --moss: #6fd17a;
+  --pollen: #f4d35e;
+  --mist: #e8eefc;
+  --ink-soft: #aab6d6;
+  --veil: rgba(11, 18, 38, 0.64);
+  --display: "IM Fell English SC", "Iowan Old Style", Georgia, serif;
+  --body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  box-sizing: border-box;
+  margin: 0;
+  overflow: hidden;
+  background: var(--night-deep);
+  color: var(--mist);
+  font-family: var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px;
+}
+.stage {
+  position: relative;
+  height: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--night);
+  box-shadow: 0 0 0 1px rgba(170, 182, 214, 0.12);
+  user-select: none;
+  -webkit-user-select: none;
+}
+canvas { display: block; width: 100%; height: 100%; touch-action: none; outline: none; }
+.card {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  padding: 24px;
+  background: var(--veil);
+  overflow-y: auto;
+}
+.card[hidden], .touch[hidden], .copied[hidden] { display: none; }
+.panel { max-width: 460px; display: grid; gap: 14px; text-align: center; justify-items: center; }
+h1, h2 { margin: 0; font-family: var(--display); font-weight: 400; color: var(--pollen); line-height: 1; text-wrap: balance; }
+h1 { font-size: clamp(48px, 10vw, 84px); text-shadow: 0 0 28px rgba(244, 211, 94, 0.4); }
+h2 { font-size: clamp(34px, 7vw, 54px); }
+.lede { margin: 0; color: var(--mist); font-size: 16px; line-height: 1.55; max-width: 40ch; }
+.how { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; color: var(--ink-soft); font-size: 14px; line-height: 1.45; }
+.how b { color: var(--mist); }
+.keys { margin: 0; color: var(--ink-soft); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
+.score { font-family: var(--display); font-size: 64px; color: var(--mist); line-height: 1; font-variant-numeric: tabular-nums; }
+.stats { margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.stats span { font-size: 13px; font-weight: 700; color: var(--mist); background: rgba(232, 238, 252, 0.08); border-radius: 999px; padding: 5px 11px; font-variant-numeric: tabular-nums; }
+.best { margin: 0; color: var(--ink-soft); font-size: 14px; font-variant-numeric: tabular-nums; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.go, .ghost {
+  font: 800 16px var(--body);
+  border-radius: 999px; padding: 12px 26px; cursor: pointer;
+}
+.go { background: var(--pollen); color: var(--night-deep); border: 0; box-shadow: 0 0 22px rgba(244, 211, 94, 0.35); }
+.ghost { background: transparent; color: var(--mist); border: 1px solid rgba(232, 238, 252, 0.35); }
+.go:hover, .ghost:hover { filter: brightness(1.08); }
+.go:focus-visible, .ghost:focus-visible, .pill:focus-visible, .touch:focus-visible, .check input:focus-visible { outline: 3px solid var(--mist); outline-offset: 3px; }
+.check { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-soft); cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--moss); }
+.copied { margin: 0; font-size: 13px; color: var(--moss); max-width: 40ch; user-select: all; -webkit-user-select: all; }
+.pill {
+  position: absolute; right: 12px; bottom: 12px;
+  font: 700 12px var(--body); letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink-soft); background: rgba(11, 18, 38, 0.55);
+  border: 1px solid rgba(170, 182, 214, 0.25); border-radius: 999px;
+  padding: 7px 12px; cursor: pointer;
+}
+.touch {
+  position: absolute; left: 14px; bottom: 14px;
+  width: 76px; height: 76px; border-radius: 50%;
+  font: 800 14px var(--body); color: var(--night-deep);
+  background: rgba(244, 211, 94, 0.85); border: 0; cursor: pointer;
+  touch-action: none;
+}
+@media (prefers-reduced-motion: reduce) { .go { box-shadow: none; } }
+</style>
+<style>[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <canvas id="game" tabindex="0" aria-label="Fairy Ring game"></canvas>
+
+  <section class="card" id="titleCard">
+    <div class="panel">
+      <h1>Fairy Ring</h1>
+      <p class="lede">Iron Nailbugs are creeping into the meadow. Lead Pip's trail of fairies in loops around them, and last until dawn.</p>
+      <ul class="how">
+        <li><b>Catch</b> glowing lost fairies to grow your trail.</li>
+        <li><b>Loop</b> across your own trail to close a fairy ring. Bugs inside pop, and big rings score far more.</li>
+        <li><b>Chain</b> rings quickly for a streak. A ring of 6 bugs heals a heart.</li>
+        <li><b>Careful:</b> a bug touching your trail snaps it.</li>
+      </ul>
+      <p class="keys">Arrows or WASD to fly &middot; Space to dash &middot; Esc to pause &middot; on a phone, drag</p>
+      <label class="check" for="gentle"><input type="checkbox" id="gentle"> Gentle night: slower bugs, and Pip can't lose</label>
+      <button class="go" id="startBtn" type="button">Start the night</button>
+      <p class="best" id="bestTitle"></p>
+    </div>
+  </section>
+
+  <section class="card" id="pauseCard" hidden>
+    <div class="panel">
+      <h2>Paused</h2>
+      <p class="lede">The fairies are holding their breath.</p>
+      <div class="row">
+        <button class="go" id="resumeBtn" type="button">Keep flying</button>
+        <button class="ghost" id="quitBtn" type="button">End the night</button>
+      </div>
+      <p class="keys">Esc or P to resume</p>
+    </div>
+  </section>
+
+  <section class="card" id="endCard" hidden>
+    <div class="panel">
+      <h2 id="endTitle">The iron caught Pip</h2>
+      <div class="score" id="endScore">0</div>
+      <p class="stats" id="endStats"></p>
+      <p class="best" id="bestEnd"></p>
+      <div class="row">
+        <button class="go" id="againBtn" type="button">Fly again</button>
+        <button class="ghost" id="copyBtn" type="button">Copy result</button>
+      </div>
+      <p class="copied" id="copyNote" hidden></p>
+      <p class="keys">or press R</p>
+    </div>
+  </section>
+
+  <button class="touch" id="dashBtn" type="button" hidden>Dash</button>
+  <button class="pill" id="soundBtn" type="button">Sound on</button>
+</div>
+
+<script>
+// ===================== SETTINGS (tweak these) =====================
+const SETTINGS = {
+  // Pip and the trail
+  pipSpeed: 230,        // how fast Pip flies, in pixels per second
+  turnEase: 10,         // how quickly Pip changes direction (higher = snappier)
+  dashBoost: 2.1,       // dash speed, as a multiple of normal speed
+  dashTime: 0.22,       // how long a dash lasts, in seconds
+  dashCooldown: 2.2,    // seconds before you can dash again
+  trailGap: 38,         // space between fairies in the trail, in pixels
+  startFairies: 4,      // fairies in the trail at the start
+  maxFairies: 18,       // the longest the trail can grow
+
+  // Fairy rings
+  ringExtra: 60,        // extra reach past the last fairy for closing a ring
+  ringCatch: 16,        // how close Pip must come to the trail to close a ring
+  ringPreview: 48,      // how close Pip must be to see the dotted ring preview
+  ringMinPath: 90,      // shortest loop, in pixels of trail, that counts as a ring
+  ringMinArea: 900,     // smallest area a ring must enclose (stops tiny wiggles)
+  streakWindow: 2.5,    // seconds to land the next scoring ring and grow the streak
+  healRing: 6,          // bugs in one ring needed to restore a heart
+  bigRing: 8,           // bugs in one ring for a "Grand ring" celebration
+
+  // Health and the night
+  hearts: 3,            // Pip's health
+  safeAfterHit: 1.0,    // seconds Pip can't be hurt after a hit
+  nightSeconds: 180,    // length of the night (3 minutes)
+  dawnBonus: 100,       // points for surviving until dawn
+
+  // Nailbugs
+  calmStart: 5,         // seconds before the first Nailbug
+  spawnWarn: 0.7,       // seconds a warning marker shows before a bug arrives
+  bugStartEvery: 1.8,   // seconds between Nailbugs at the start
+  bugEveryMin: 0.4,     // the fastest Nailbugs can ever arrive
+  bugRamp: 0.82,        // every 30 s, the gap between Nailbugs is multiplied by this
+  restAfter: 23,        // within each 30 s wave, the seconds of push before a short rest
+  bugSpeed: 42,         // Nailbug speed at the start
+  bugSpeedRamp: 7,      // extra Nailbug speed every 30 s
+
+  // Rust Hounds
+  houndFrom: 60,        // when the first Rust Hound arrives, in seconds
+  houndEvery: 9,        // seconds between Rust Hounds
+  houndAim: 1.0,        // seconds a hound aims (red line follows Pip)
+  houndLock: 0.3,       // seconds the line holds still before the charge
+  houndSpeed: 430,      // charge speed, in pixels per second
+  houndWorth: 3,        // a hound counts as this many bugs inside a ring
+
+  // Lost fairies
+  lostFairyEvery: 5,    // seconds between new lost fairies appearing
+  lostFairyMax: 3,      // most new lost fairies on screen at once
+  fledLife: 6,          // seconds snapped-off fairies wait to be caught again
+
+  // Gentle night
+  gentleSpeed: 0.7,     // bug speed multiplier in Gentle night
+  gentleSpawn: 1.4,     // bug spawn gap multiplier in Gentle night
+
+  // Feel
+  hitstop: 0.08,        // freeze on a scoring ring, in seconds
+  shake: 3,             // screen shake in pixels when Pip is hit
+};
+// ==================================================================
+
+const S = SETTINGS;
+const $ = (id) => document.getElementById(id);
+const stage = $("stage"), canvas = $("game"), ctx = canvas.getContext("2d");
+const titleCard = $("titleCard"), pauseCard = $("pauseCard"), endCard = $("endCard");
+const soundBtn = $("soundBtn"), dashBtn = $("dashBtn");
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const COL = {
+  pollen: "#f4d35e", moss: "#6fd17a", mist: "#e8eefc", soft: "#aab6d6",
+  rust: "#9a5b3c", rustDark: "#5e3624", rustHi: "#c47a50", cap: "#f2e6c9", heart: "#ff8a8a", warn: "#ff6b57",
+};
+const FAIRY_COLORS = ["#6fd17a", "#5cc8ff", "#ffa45c", "#ff8fd0"];
+
+let W = 800, H = 600, DPR = 1, bg = null;
+let state = "title";
+let pip, path, pid, ringBlockId, trail, bugs, hounds, pending, lost, particles, texts, rings, fireflies, twinkles;
+let score, shownScore, hearts, t, spawnT, lostT, houndT, invuln, hitstop, shakeT, hitFlash, bigFlash;
+let streak, streakT, bestStreak, ringsCount, biggest, snapsCount, gentle, preview, dashT, dashCd, announce, heartbeatT, cricketT;
+let best = 0;
+
+// ---------- small helpers ----------
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+function fmt(s) { s = Math.max(0, Math.ceil(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+function mulberry(a) { return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let x = Math.imul(a ^ (a >>> 15), 1 | a); x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x; return ((x ^ (x >>> 14)) >>> 0) / 4294967296; }; }
+
+// ---------- storage (best score) ----------
+try { best = Number(localStorage.getItem("fairyring-best")) || 0; } catch (e) { best = 0; }
+function saveBest() { try { localStorage.setItem("fairyring-best", String(best)); } catch (e) {} }
+
+// ---------- sound ----------
+let actx = null, master = null, echo = null, amb = null, muted = false;
+function wakeAudio() {
+  if (!actx) {
+    try {
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      const comp = actx.createDynamicsCompressor();
+      master = actx.createGain(); master.gain.value = muted ? 0 : 0.9;
+      master.connect(comp).connect(actx.destination);
+      // a soft echo for the fairy chimes
+      const d = actx.createDelay(1); d.delayTime.value = 0.19;
+      const fb = actx.createGain(); fb.gain.value = 0.28;
+      const wet = actx.createGain(); wet.gain.value = 0.32;
+      echo = actx.createGain();
+      echo.connect(d); d.connect(fb).connect(d); d.connect(wet).connect(master);
+    } catch (e) { actx = null; }
+  }
+  if (actx && actx.state === "suspended") actx.resume();
+}
+function tone(freq, dur, type = "sine", vol = 0.12, to = null, delay = 0, withEcho = false) {
+  if (!actx) return;
+  const t0 = actx.currentTime + delay;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t0);
+  if (to) o.frequency.exponentialRampToValueAtTime(to, t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(master);
+  if (withEcho && echo) g.connect(echo);
+  o.start(t0); o.stop(t0 + dur + 0.03);
+}
+function noise(dur, vol, freq, delay = 0) {
+  if (!actx) return;
+  const t0 = actx.currentTime + delay;
+  const len = Math.floor(actx.sampleRate * dur);
+  const buf = actx.createBuffer(1, len, actx.sampleRate), data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  const src = actx.createBufferSource(); src.buffer = buf;
+  const f = actx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = freq; f.Q.value = 0.8;
+  const g = actx.createGain(); g.gain.value = vol;
+  src.connect(f).connect(g).connect(master); src.start(t0);
+}
+const SCALE = [523, 587, 659, 784, 880, 1047, 1175, 1319, 1568, 1760, 2093, 2349];
+const sfx = {
+  join(n) { const f = SCALE[Math.min(n, SCALE.length - 1)]; tone(f, 0.4, "sine", 0.11, null, 0, true); tone(f * 2, 0.22, "sine", 0.035, null, 0.03, true); },
+  ring(n, s) {
+    const lift = Math.pow(2, Math.min(s - 1, 6) / 12 * 2); // each streak step rises a whole tone
+    const notes = [523, 659, 784, 1047, 1319, 1568];
+    const k = Math.min(3 + Math.floor(n / 3), notes.length);
+    for (let i = 0; i < k; i++) tone(notes[i] * lift, 0.55, "triangle", 0.075, null, i * 0.045, true);
+    noise(0.25, 0.08, 2400);
+  },
+  pop(i) { tone(380 + Math.random() * 260, 0.09, "square", 0.03, 140, i * 0.018); },
+  hit() { tone(150, 0.28, "sine", 0.32, 55); noise(0.18, 0.15, 400); },
+  snap() { tone(760, 0.42, "triangle", 0.1, 170); },
+  empty() { tone(660, 0.16, "sine", 0.045, 880, 0, true); },
+  dash() { noise(0.2, 0.12, 1400); tone(300, 0.18, "sine", 0.05, 600); },
+  heal() { [784, 988, 1175].forEach((f, i) => tone(f, 0.35, "sine", 0.08, null, i * 0.07, true)); },
+  growl() { tone(90, 0.9, "sawtooth", 0.035, 130); },
+  charge() { noise(0.35, 0.18, 700); tone(220, 0.3, "sawtooth", 0.04, 90); },
+  warnTick() { tone(1200, 0.05, "square", 0.015); },
+  heartbeat() { tone(70, 0.12, "sine", 0.22, 50); tone(70, 0.12, "sine", 0.16, 50, 0.16); },
+  cricket() { const f = rand(4200, 5200); for (let i = 0; i < 3; i++) tone(f, 0.035, "sine", 0.012, null, i * 0.06); },
+  dawn() {
+    [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.7, "sine", 0.09, null, i * 0.12, true));
+    for (let i = 0; i < 6; i++) { const f = rand(2400, 3600); tone(f, 0.12, "sine", 0.03, f * 1.4, 0.7 + i * 0.16); }
+  },
+};
+function startAmbient() {
+  if (!actx || amb) return;
+  const g = actx.createGain(); g.gain.value = 0.0001; g.connect(master);
+  g.gain.exponentialRampToValueAtTime(0.03, actx.currentTime + 2);
+  const lfo = actx.createOscillator(), lfoG = actx.createGain();
+  lfo.frequency.value = 0.12; lfoG.gain.value = 0.012; lfo.connect(lfoG).connect(g.gain);
+  const oscs = [110, 164.8, 220.4].map((f) => { const o = actx.createOscillator(); o.type = "sine"; o.frequency.value = f; o.connect(g); o.start(); return o; });
+  lfo.start();
+  amb = { g, oscs, lfo };
+}
+function stopAmbient() {
+  if (!amb || !actx) return;
+  const a = amb; amb = null;
+  a.g.gain.cancelScheduledValues(actx.currentTime);
+  a.g.gain.setTargetAtTime(0.0001, actx.currentTime, 0.4);
+  setTimeout(() => { a.oscs.forEach((o) => o.stop()); a.lfo.stop(); }, 1800);
+}
+function setMuted(m) {
+  muted = m; soundBtn.textContent = muted ? "Sound off" : "Sound on";
+  if (master && actx) master.gain.setTargetAtTime(muted ? 0 : 0.9, actx.currentTime, 0.05);
+}
+soundBtn.addEventListener("click", () => { wakeAudio(); setMuted(!muted); soundBtn.blur(); canvas.focus({ preventScroll: true }); });
+
+// ---------- glow sprites (drawn once, reused every frame) ----------
+const glowCache = {};
+function glowSprite(color) {
+  if (!glowCache[color]) {
+    const c = document.createElement("canvas"); c.width = c.height = 128;
+    const g = c.getContext("2d"), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gr.addColorStop(0, hexA(color, 0.6)); gr.addColorStop(0.35, hexA(color, 0.22)); gr.addColorStop(1, hexA(color, 0));
+    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+    glowCache[color] = c;
+  }
+  return glowCache[color];
+}
+function glow(x, y, r, color, alpha = 1) {
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(glowSprite(color), x - r, y - r, r * 2, r * 2);
+  ctx.globalAlpha = 1;
+}
+
+// ---------- sizing and background ----------
+function resize() {
+  const r = stage.getBoundingClientRect();
+  W = Math.max(320, Math.floor(r.width));
+  H = Math.max(320, Math.floor(r.height));
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.floor(W * DPR);
+  canvas.height = Math.floor(H * DPR);
+  makeBackground();
+  if (pip) { pip.x = clamp(pip.x, 14, W - 14); pip.y = clamp(pip.y, 14, H - 14); }
+}
+function makeBackground() {
+  bg = document.createElement("canvas");
+  bg.width = canvas.width; bg.height = canvas.height;
+  const b = bg.getContext("2d");
+  b.scale(DPR, DPR);
+  const g = b.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#0b1330"); g.addColorStop(0.55, "#16213f"); g.addColorStop(1, "#1a2d38");
+  b.fillStyle = g; b.fillRect(0, 0, W, H);
+  const seed = mulberry(7);
+  // moon glow, top right
+  const mx = W * 0.82, my = H * 0.16, mg = b.createRadialGradient(mx, my, 0, mx, my, 160);
+  mg.addColorStop(0, "rgba(232,238,252,0.14)"); mg.addColorStop(1, "rgba(232,238,252,0)");
+  b.fillStyle = mg; b.fillRect(mx - 160, my - 160, 320, 320);
+  b.fillStyle = "rgba(232,238,252,0.85)"; b.beginPath(); b.arc(mx, my, 18, 0, Math.PI * 2); b.fill();
+  b.fillStyle = "#101a38"; b.beginPath(); b.arc(mx + 8, my - 5, 16, 0, Math.PI * 2); b.fill();
+  // stars
+  for (let i = 0; i < (W * H) / 9000; i++) {
+    const x = seed() * W, y = seed() * H * 0.6, s = seed() * 1.3 + 0.3;
+    b.globalAlpha = 0.2 + seed() * 0.5; b.fillStyle = COL.mist;
+    b.beginPath(); b.arc(x, y, s, 0, Math.PI * 2); b.fill();
+  }
+  // soft mist pools
+  for (let i = 0; i < 7; i++) {
+    const x = seed() * W, y = H * (0.45 + seed() * 0.55), r = 90 + seed() * 170;
+    const m = b.createRadialGradient(x, y, 0, x, y, r);
+    m.addColorStop(0, "rgba(111,209,122,0.07)"); m.addColorStop(1, "rgba(111,209,122,0)");
+    b.globalAlpha = 1; b.fillStyle = m; b.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  // grass tufts and a few sleeping mushrooms
+  b.lineWidth = 1.2;
+  for (let i = 0; i < (W * H) / 5000; i++) {
+    const x = seed() * W, y = H * 0.32 + seed() * H * 0.68, h = 6 + seed() * 5;
+    b.strokeStyle = `rgba(111,209,122,${0.1 + seed() * 0.12})`;
+    for (let k = -1; k <= 1; k++) { b.beginPath(); b.moveTo(x, y); b.quadraticCurveTo(x + k * 2, y - h * 0.6, x + k * 4, y - h); b.stroke(); }
+  }
+  for (let i = 0; i < 10; i++) {
+    const x = seed() * W, y = H * 0.4 + seed() * H * 0.6;
+    b.fillStyle = "rgba(242,230,201,0.16)"; b.fillRect(x - 1, y - 1, 2, 5);
+    b.beginPath(); b.ellipse(x, y - 1, 4.5, 3.2, 0, Math.PI, 0); b.fill();
+  }
+  b.globalAlpha = 1;
+  // twinkling stars and fireflies are animated live
+  twinkles = Array.from({ length: 22 }, () => ({ x: Math.random() * W, y: Math.random() * H * 0.55, ph: Math.random() * 6, s: rand(1, 1.8) }));
+  fireflies = Array.from({ length: Math.round((W * H) / 40000) + 6 }, () => ({ x: Math.random() * W, y: rand(H * 0.3, H), ph: Math.random() * 6, vx: rand(-10, 10), vy: rand(-6, 6) }));
+}
+
+// ---------- game setup ----------
+function reset() {
+  pip = { x: W * 0.5, y: H * 0.55, vx: 0, vy: 0, face: 1, look: 0 };
+  path = []; pid = 0; ringBlockId = 0;
+  const len = (S.startFairies + 1) * S.trailGap + 20;
+  for (let d = len; d > 0; d -= 4) path.push({ x: pip.x - d, y: pip.y, id: ++pid });
+  trail = Array.from({ length: S.startFairies }, (_, i) => FAIRY_COLORS[i % FAIRY_COLORS.length]);
+  bugs = []; hounds = []; pending = []; lost = []; particles = []; texts = []; rings = [];
+  score = 0; shownScore = 0; hearts = S.hearts; t = 0;
+  spawnT = S.calmStart; lostT = 1.5; houndT = S.houndFrom;
+  invuln = 0; hitstop = 0; shakeT = 0; hitFlash = 0; bigFlash = 0;
+  streak = 0; streakT = 0; bestStreak = 0; ringsCount = 0; biggest = 0; snapsCount = 0;
+  preview = null; dashT = 0; dashCd = 0; announce = null; heartbeatT = 0; cricketT = 2;
+  lost.push(makeLost(clamp(pip.x + 140, 30, W - 30), pip.y - 40, -8, 6));
+}
+function makeLost(x, y, vx, vy, fled = false, color = pick(FAIRY_COLORS)) {
+  return { x, y, vx, vy, ph: Math.random() * 6, color, life: fled ? S.fledLife : Infinity, fled };
+}
+
+function start() {
+  if (state === "play") return;
+  wakeAudio();
+  gentle = $("gentle").checked;
+  reset();
+  state = "play";
+  titleCard.hidden = true; endCard.hidden = true; pauseCard.hidden = true;
+  startAmbient();
+  canvas.focus({ preventScroll: true });
+}
+function pause() {
+  if (state !== "play") return;
+  state = "paused"; keys.clear(); ptr.on = false;
+  pauseCard.hidden = false;
+  $("resumeBtn").focus({ preventScroll: true });
+}
+function resume() {
+  if (state !== "paused") return;
+  state = "play"; pauseCard.hidden = true;
+  lastTime = performance.now();
+  canvas.focus({ preventScroll: true });
+}
+
+function endGame(kind) {
+  state = kind;
+  stopAmbient();
+  pauseCard.hidden = true;
+  if (kind === "dawn") { score += S.dawnBonus; sfx.dawn(); }
+  const counts = !gentle;
+  const newBest = counts && score > best;
+  if (newBest) { best = score; saveBest(); }
+  $("endTitle").textContent = kind === "dawn" ? "Dawn! The meadow is safe" : "The iron caught Pip";
+  $("endScore").textContent = score.toLocaleString("en-US");
+  const stats = [
+    `${ringsCount} ring${ringsCount === 1 ? "" : "s"}`,
+    `biggest ${biggest}`,
+    `best streak ×${Math.max(1, bestStreak)}`,
+    kind === "dawn" ? `+${S.dawnBonus} dawn` : `lasted ${fmt(t)}`,
+  ];
+  if (gentle) stats.push("Gentle night");
+  $("endStats").innerHTML = stats.map((s) => `<span>${s}</span>`).join("");
+  $("bestEnd").textContent = newBest && score > 0 ? "New best score!" : (gentle ? "Gentle nights don't count toward your best" : `Best: ${best.toLocaleString("en-US")}`);
+  $("copyNote").hidden = true;
+  endCard.hidden = false;
+  $("bestTitle").textContent = best > 0 ? `Best: ${best.toLocaleString("en-US")}` : "";
+  $("againBtn").focus({ preventScroll: true });
+}
+function resultText() {
+  const head = state === "dawn" ? "🌅 Reached dawn" : `🌙 Lasted ${fmt(t)}`;
+  return `Fairy Ring · ${head} · ${score.toLocaleString("en-US")} points\n💍 ${ringsCount} rings · biggest ${biggest} · streak ×${Math.max(1, bestStreak)}${gentle ? " · gentle" : ""}`;
+}
+$("copyBtn").addEventListener("click", () => {
+  const text = resultText(), note = $("copyNote");
+  const show = (ok) => { note.hidden = false; note.textContent = ok ? "Copied. Paste it anywhere to share." : text; };
+  try { navigator.clipboard.writeText(text).then(() => show(true), () => show(false)); } catch (e) { show(false); }
+});
+
+// ---------- input ----------
+const keys = new Set();
+const ptr = { on: false, x: 0, y: 0 };
+const MOVE = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "w", "a", "s", "d"];
+const norm = (k) => (k.length === 1 ? k.toLowerCase() : k);
+window.addEventListener("keydown", (e) => {
+  const k = norm(e.key);
+  if (MOVE.includes(k) || k === " ") { if (e.target === document.body || e.target === canvas || state === "play") e.preventDefault(); }
+  if (k === "m") { wakeAudio(); setMuted(!muted); return; }
+  if (k === "Escape" || k === "p") { if (state === "play") pause(); else if (state === "paused") resume(); return; }
+  if (state === "title" && (MOVE.includes(k) || (k === "Enter" && e.target.tagName !== "BUTTON" && e.target.tagName !== "INPUT"))) start();
+  else if ((state === "over" || state === "dawn") && k === "r") { start(); }
+  if (state === "play" && k === " " && !e.repeat) dash();
+  keys.add(k);
+});
+window.addEventListener("keyup", (e) => keys.delete(norm(e.key)));
+window.addEventListener("blur", () => { keys.clear(); pause(); });
+document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
+function setPtr(e) { const r = canvas.getBoundingClientRect(); ptr.x = e.clientX - r.left; ptr.y = e.clientY - r.top; }
+canvas.addEventListener("pointerdown", (e) => {
+  ptr.on = true; setPtr(e); canvas.setPointerCapture?.(e.pointerId);
+  if (e.pointerType === "touch") dashBtn.hidden = false;
+});
+canvas.addEventListener("pointermove", (e) => { if (ptr.on) setPtr(e); });
+["pointerup", "pointercancel"].forEach((n) => canvas.addEventListener(n, () => { ptr.on = false; }));
+dashBtn.addEventListener("pointerdown", (e) => { e.preventDefault(); if (state === "play") dash(); });
+$("startBtn").addEventListener("click", start);
+$("againBtn").addEventListener("click", start);
+$("resumeBtn").addEventListener("click", resume);
+$("quitBtn").addEventListener("click", () => { if (state === "paused") endGame("over"); });
+
+function dash() {
+  if (dashCd > 0) return;
+  dashT = S.dashTime; dashCd = S.dashCooldown;
+  sfx.dash();
+  burst(pip.x, pip.y, COL.pollen, 10, 120);
+}
+
+// ---------- trail helpers ----------
+function trailPoints(dists) {
+  const out = [];
+  let px = pip.x, py = pip.y, acc = 0, k = 0;
+  for (let i = path.length - 1; i >= 0 && k < dists.length; i--) {
+    const p = path[i], seg = Math.hypot(px - p.x, py - p.y);
+    while (k < dists.length && acc + seg >= dists[k]) {
+      const f = seg ? (dists[k] - acc) / seg : 0;
+      out.push({ x: px + (p.x - px) * f, y: py + (p.y - py) * f });
+      k++;
+    }
+    acc += seg; px = p.x; py = p.y;
+  }
+  while (k < dists.length) { out.push({ x: px, y: py }); k++; }
+  return out;
+}
+function fairyPositions() { return trailPoints(trail.map((_, i) => (i + 1) * S.trailGap)); }
+function prunePath() {
+  const limit = (S.maxFairies + 2) * S.trailGap + S.ringExtra + 40;
+  let px = pip.x, py = pip.y, acc = 0;
+  for (let i = path.length - 1; i >= 0; i--) {
+    acc += Math.hypot(px - path[i].x, py - path[i].y);
+    px = path[i].x; py = path[i].y;
+    if (acc > limit) { path.splice(0, i); return; }
+  }
+}
+function polyArea(p) { let a = 0; for (let i = 0, j = p.length - 1; i < p.length; j = i++) a += (p[j].x + p[i].x) * (p[j].y - p[i].y); return a / 2; }
+function inside(pt, poly) {
+  let c = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const a = poly[i], b = poly[j];
+    if ((a.y > pt.y) !== (b.y > pt.y) && pt.x < ((b.x - a.x) * (pt.y - a.y)) / (b.y - a.y) + a.x) c = !c;
+  }
+  return c;
+}
+// Find a point on the trail Pip could close a ring at, within radius r.
+function findLoop(r) {
+  if (trail.length < 1) return null;
+  const reach = (trail.length + 1) * S.trailGap + S.ringExtra;
+  let px = pip.x, py = pip.y, acc = 0, bestI = -1, bestD = r;
+  for (let i = path.length - 1; i >= 0; i--) {
+    const p = path[i];
+    if (p.id <= ringBlockId) break;
+    acc += Math.hypot(px - p.x, py - p.y); px = p.x; py = p.y;
+    if (acc > reach) break;
+    if (acc >= S.ringMinPath) {
+      const d = Math.hypot(pip.x - p.x, pip.y - p.y);
+      if (d < bestD) { bestD = d; bestI = i; }
+    }
+  }
+  if (bestI < 0) return null;
+  const poly = path.slice(bestI).map((q) => ({ x: q.x, y: q.y }));
+  poly.push({ x: pip.x, y: pip.y });
+  if (Math.abs(polyArea(poly)) < S.ringMinArea) return null;
+  return { poly, d: bestD, at: path[bestI] };
+}
+
+function closeRing(poly) {
+  let n = 0, popped = 0;
+  bugs = bugs.filter((b) => {
+    if (inside(b, poly)) { n++; burst(b.x, b.y, COL.pollen, 10, 150); sfx.pop(popped++); return false; }
+    return true;
+  });
+  hounds = hounds.filter((h) => {
+    if (inside(h, poly)) { n += S.houndWorth; burst(h.x, h.y, COL.warn, 16, 190); sfx.pop(popped++); return false; }
+    return true;
+  });
+  const mush = [];
+  let acc = 0;
+  for (let i = 1; i < poly.length; i++) {
+    acc += Math.hypot(poly[i].x - poly[i - 1].x, poly[i].y - poly[i - 1].y);
+    if (acc >= 22) { acc = 0; mush.push({ x: poly[i].x, y: poly[i].y, s: rand(0.8, 1.2), d: Math.random() * 0.12 }); }
+  }
+  let cx = 0, cy = 0; poly.forEach((p) => { cx += p.x; cy += p.y; }); cx /= poly.length; cy /= poly.length;
+  let rad = 0; poly.forEach((p) => { rad = Math.max(rad, Math.hypot(p.x - cx, p.y - cy)); });
+  rings.push({ poly, mush, cx, cy, rad, life: 0.95, max: 0.95, n });
+  ringsCount++;
+  ringBlockId = path[path.length - 1].id;
+  if (n > 0) {
+    streak = streakT > 0 ? streak + 1 : 1;
+    streakT = S.streakWindow;
+    bestStreak = Math.max(bestStreak, streak);
+    const pts = n * n * streak;
+    score += pts;
+    biggest = Math.max(biggest, n);
+    hitstop = S.hitstop * (n >= S.bigRing ? 2 : 1);
+    texts.push({ x: cx, y: cy, text: `+${pts}`, sub: streak > 1 ? `${n} bugs · streak ×${streak}` : `${n} bug${n === 1 ? "" : "s"}`, life: 1.2, max: 1.2, size: n >= S.bigRing ? 44 : n >= 4 ? 36 : 30, color: COL.pollen });
+    sfx.ring(n, streak);
+    if (n >= S.healRing && hearts < S.hearts) {
+      hearts++; sfx.heal();
+      texts.push({ x: pip.x, y: pip.y - 26, text: "+1 heart", sub: "", life: 1, max: 1, size: 18, color: COL.heart });
+    }
+    if (n >= S.bigRing) { bigFlash = 0.35; say("Grand ring!", COL.pollen); }
+  } else {
+    sfx.empty();
+  }
+}
+function say(text, color = COL.mist) { announce = { text, color, life: 1.8, max: 1.8 }; }
+
+// ---------- effects ----------
+function burst(x, y, color, count, speed) {
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2, v = rand(0.3, 1) * speed;
+    particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: rand(0.35, 0.75), max: 0.75, color, size: rand(1.5, 3) });
+  }
+}
+
+// ---------- spawning ----------
+function edgeSpot() {
+  for (let tries = 0; tries < 6; tries++) {
+    const side = Math.floor(Math.random() * 4);
+    let x, y, mx, my;
+    if (side === 0) { x = rand(20, W - 20); y = -16; mx = x; my = 14; }
+    else if (side === 1) { x = W + 16; y = rand(60, H - 20); mx = W - 14; my = y; }
+    else if (side === 2) { x = rand(20, W - 20); y = H + 16; mx = x; my = H - 14; }
+    else { x = -16; y = rand(60, H - 20); mx = 14; my = y; }
+    if (Math.hypot(mx - pip.x, my - pip.y) > 140 || tries === 5) return { x, y, mx, my, side };
+  }
+}
+function queueBug(wave) {
+  const s = edgeSpot();
+  pending.push({ ...s, life: S.spawnWarn, max: S.spawnWarn, wave });
+}
+function spawnHound() {
+  const s = edgeSpot();
+  const inset = 22;
+  const x = clamp(s.x, inset, W - inset), y = clamp(s.y, inset, H - inset);
+  hounds.push({ x, y, r: 12, phase: "aim", life: S.houndAim, ang: Math.atan2(pip.y - y, pip.x - x), run: 0 });
+  sfx.growl();
+}
+
+// ---------- update ----------
+function update(dt) {
+  t += dt;
+  if (t >= S.nightSeconds) { endGame("dawn"); return; }
+
+  // announcements at key moments
+  if (t - dt < S.houndFrom - 2 && t >= S.houndFrom - 2) say("Rust Hounds are coming. Watch for red lines", COL.warn);
+  if (t - dt < S.nightSeconds - 30 && t >= S.nightSeconds - 30) say("Dawn is close. Hold on!", COL.pollen);
+
+  // Pip movement
+  let ix = 0, iy = 0;
+  if (keys.has("ArrowLeft") || keys.has("a")) ix -= 1;
+  if (keys.has("ArrowRight") || keys.has("d")) ix += 1;
+  if (keys.has("ArrowUp") || keys.has("w")) iy -= 1;
+  if (keys.has("ArrowDown") || keys.has("s")) iy += 1;
+  if (ptr.on) {
+    const dx = ptr.x - pip.x, dy = ptr.y - pip.y, l = Math.hypot(dx, dy);
+    if (l > 10) { ix = dx / l; iy = dy / l; }
+  }
+  const il = Math.hypot(ix, iy);
+  if (il > 0) { ix /= il; iy /= il; }
+  dashT = Math.max(0, dashT - dt); dashCd = Math.max(0, dashCd - dt);
+  const speed = S.pipSpeed * (dashT > 0 ? S.dashBoost : 1);
+  if (dashT > 0 && il === 0) { const v = Math.hypot(pip.vx, pip.vy) || 1; ix = pip.vx / v; iy = pip.vy / v; if (!pip.vx && !pip.vy) ix = pip.face; }
+  const k = 1 - Math.exp(-(dashT > 0 ? 24 : S.turnEase) * dt);
+  pip.vx += (ix * speed - pip.vx) * k;
+  pip.vy += (iy * speed - pip.vy) * k;
+  pip.x = clamp(pip.x + pip.vx * dt, 14, W - 14);
+  pip.y = clamp(pip.y + pip.vy * dt, 14, H - 14);
+  if (Math.abs(pip.vx) > 20) pip.face = Math.sign(pip.vx);
+  pip.look += ((Math.hypot(pip.vx, pip.vy) > 20 ? Math.atan2(pip.vy, pip.vx) : pip.look) - pip.look) * 0.2;
+  if (dashT > 0 && Math.random() < 0.6) particles.push({ x: pip.x, y: pip.y, vx: -pip.vx * 0.2, vy: -pip.vy * 0.2, life: 0.3, max: 0.3, color: COL.pollen, size: rand(2, 3.5) });
+  const last = path[path.length - 1];
+  if (!last || Math.hypot(pip.x - last.x, pip.y - last.y) >= 3) path.push({ x: pip.x, y: pip.y, id: ++pid });
+  prunePath();
+
+  // rings: close one, or show a preview when close
+  const close = findLoop(S.ringCatch);
+  if (close) { closeRing(close.poly); preview = null; }
+  else preview = findLoop(S.ringPreview);
+
+  streakT = Math.max(0, streakT - dt);
+  if (streakT === 0) streak = 0;
+
+  // Nailbug spawning, in waves of push and rest
+  const wave = Math.floor(t / 30);
+  spawnT -= dt;
+  if (spawnT <= 0) {
+    let every = Math.max(S.bugEveryMin, S.bugStartEvery * Math.pow(S.bugRamp, wave));
+    if (t % 30 > S.restAfter) every *= 3;
+    if (gentle) every *= S.gentleSpawn;
+    spawnT = every;
+    const group = t > 90 ? 2 : 1;
+    for (let g = 0; g < group; g++) queueBug(wave);
+  }
+  pending = pending.filter((p) => {
+    p.life -= dt;
+    if (p.life <= 0) {
+      const sp = (S.bugSpeed + S.bugSpeedRamp * p.wave) * rand(0.85, 1.15) * (gentle ? S.gentleSpeed : 1);
+      bugs.push({ x: p.x, y: p.y, r: 9, speed: sp, wob: Math.random() * 6, dir: Math.atan2(pip.y - p.y, pip.x - p.x) });
+      return false;
+    }
+    return true;
+  });
+
+  // Rust Hounds
+  if (t >= S.houndFrom) {
+    houndT -= dt;
+    if (houndT <= 0 && t < S.nightSeconds - 4) { houndT = S.houndEvery * (gentle ? 1.5 : 1); spawnHound(); }
+  }
+
+  // lost fairies
+  lostT -= dt;
+  if (lostT <= 0) {
+    lostT = S.lostFairyEvery;
+    const fresh = lost.filter((f) => !f.fled).length;
+    if (fresh < S.lostFairyMax && trail.length + lost.length < S.maxFairies) {
+      lost.push(makeLost(rand(40, W - 40), rand(80, H - 40), rand(-14, 14), rand(-14, 14)));
+    }
+  }
+  lost = lost.filter((f) => {
+    f.ph += dt; f.life -= dt;
+    f.x += f.vx * dt; f.y += f.vy * dt;
+    f.vx *= f.fled ? 0.985 : 1; f.vy *= f.fled ? 0.985 : 1;
+    if (f.x < 24 || f.x > W - 24) { f.vx *= -1; f.x = clamp(f.x, 24, W - 24); }
+    if (f.y < 60 || f.y > H - 24) { f.vy *= -1; f.y = clamp(f.y, 60, H - 24); }
+    if (Math.hypot(f.x - pip.x, f.y - pip.y) < 22 && trail.length < S.maxFairies) {
+      trail.push(f.color);
+      sfx.join(trail.length);
+      burst(f.x, f.y, f.color, 12, 90);
+      texts.push({ x: f.x, y: f.y - 14, text: f.fled ? "Welcome back" : "+1 fairy", sub: "", life: 0.8, max: 0.8, size: 16, color: f.color });
+      return false;
+    }
+    if (f.life <= 0) { burst(f.x, f.y, f.color, 6, 60); return false; }
+    return true;
+  });
+
+  // Nailbugs and hounds: move, hit Pip, snap the trail
+  const fp = fairyPositions();
+  invuln = Math.max(0, invuln - dt);
+  const hurtPip = (x, y) => {
+    burst(x, y, COL.rust, 10, 110);
+    if (invuln > 0) return false;
+    invuln = S.safeAfterHit;
+    if (!reduceMotion) shakeT = 0.25;
+    hitFlash = 0.4;
+    sfx.hit();
+    if (!gentle) hearts--;
+    else { score = Math.max(0, score - 10); texts.push({ x: pip.x, y: pip.y - 24, text: "-10", sub: "", life: 0.8, max: 0.8, size: 18, color: COL.heart }); }
+    if (hearts <= 0) { endGame("over"); return true; }
+    return false;
+  };
+  const snapAt = (i, x, y) => {
+    const fled = trail.length - i;
+    const pos = fp.slice(i);
+    pos.forEach((p, j) => {
+      const a = Math.random() * Math.PI * 2;
+      lost.push(makeLost(p.x, p.y, Math.cos(a) * rand(60, 110), Math.sin(a) * rand(60, 110), true, trail[i + j]));
+    });
+    trail = trail.slice(0, i);
+    texts.push({ x, y: y - 14, text: "Snap!", sub: `${fled} fled, catch them`, life: 1, max: 1, size: 18, color: COL.heart });
+    snapsCount++;
+    sfx.snap();
+  };
+  for (const b of bugs) {
+    b.wob += dt * 3;
+    const dx = pip.x - b.x, dy = pip.y - b.y, l = Math.hypot(dx, dy) || 1;
+    const ang = Math.atan2(dy, dx) + Math.sin(b.wob) * 0.35;
+    b.x += Math.cos(ang) * b.speed * dt; b.y += Math.sin(ang) * b.speed * dt;
+    b.dir = ang;
+    if (l < b.r + 9) { b.dead = true; if (hurtPip(b.x, b.y)) return; continue; }
+    for (let i = 0; i < fp.length; i++) {
+      if (Math.hypot(fp[i].x - b.x, fp[i].y - b.y) < b.r + 5) {
+        b.dead = true; burst(b.x, b.y, COL.rust, 8, 100); snapAt(i, fp[i].x, fp[i].y); break;
+      }
+    }
+  }
+  bugs = bugs.filter((b) => !b.dead);
+  const fp2 = fairyPositions();
+  for (const h of hounds) {
+    if (h.phase === "aim") {
+      h.life -= dt; h.ang = Math.atan2(pip.y - h.y, pip.x - h.x);
+      if (Math.floor(h.life * 8) !== Math.floor((h.life + dt) * 8)) sfx.warnTick();
+      if (h.life <= 0) { h.phase = "lock"; h.life = S.houndLock; }
+    } else if (h.phase === "lock") {
+      h.life -= dt;
+      if (h.life <= 0) { h.phase = "run"; sfx.charge(); }
+    } else {
+      const sp = S.houndSpeed * (gentle ? S.gentleSpeed : 1);
+      h.x += Math.cos(h.ang) * sp * dt; h.y += Math.sin(h.ang) * sp * dt; h.run += dt;
+      if (Math.random() < 0.5) particles.push({ x: h.x, y: h.y, vx: rand(-20, 20), vy: rand(-20, 20), life: 0.35, max: 0.35, color: COL.rustHi, size: rand(1.5, 2.5) });
+      if (h.x < -60 || h.x > W + 60 || h.y < -60 || h.y > H + 60) h.dead = true;
+      if (Math.hypot(pip.x - h.x, pip.y - h.y) < h.r + 9) { h.dead = true; if (hurtPip(h.x, h.y)) return; continue; }
+      for (let i = 0; i < fp2.length && i < trail.length; i++) {
+        if (Math.hypot(fp2[i].x - h.x, fp2[i].y - h.y) < h.r + 5) { snapAt(i, fp2[i].x, fp2[i].y); break; }
+      }
+    }
+  }
+  hounds = hounds.filter((h) => !h.dead);
+
+  // last-heart heartbeat, crickets
+  if (hearts === 1 && !gentle) { heartbeatT -= dt; if (heartbeatT <= 0) { heartbeatT = 1.1; sfx.heartbeat(); } }
+  cricketT -= dt; if (cricketT <= 0) { cricketT = rand(1.2, 3.5); sfx.cricket(); }
+
+  // effects
+  stepEffects(dt);
+  shakeT = Math.max(0, shakeT - dt);
+  hitFlash = Math.max(0, hitFlash - dt);
+  bigFlash = Math.max(0, bigFlash - dt);
+}
+function stepEffects(dt) {
+  particles.forEach((p) => { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.92; p.vy *= 0.92; });
+  particles = particles.filter((p) => p.life > 0);
+  texts.forEach((x) => { x.life -= dt; x.y -= 26 * dt; });
+  texts = texts.filter((x) => x.life > 0);
+  rings.forEach((r) => (r.life -= dt));
+  rings = rings.filter((r) => r.life > 0);
+  if (announce) { announce.life -= dt; if (announce.life <= 0) announce = null; }
+}
+
+// ---------- drawing ----------
+function drawPip(x, y, time) {
+  ctx.globalCompositeOperation = "lighter";
+  glow(x, y, 40, COL.pollen, 0.9);
+  ctx.globalCompositeOperation = "source-over";
+  // dandelion seed tuft, leaning away from the direction of flight
+  const lean = clamp(-pip.vx / 900, -0.35, 0.35);
+  ctx.strokeStyle = "rgba(232,238,252,0.85)"; ctx.lineWidth = 1;
+  for (let i = -3; i <= 3; i++) {
+    const a = -Math.PI / 2 + lean + i * 0.32 + Math.sin(time * 4 + i) * 0.04;
+    const ex = x + Math.cos(a) * 18, ey = y - 6 + Math.sin(a) * 18;
+    ctx.beginPath(); ctx.moveTo(x, y - 6); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.fillStyle = COL.mist; ctx.beginPath(); ctx.arc(ex, ey, 1.4, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.fillStyle = COL.pollen; ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.45)"; ctx.beginPath(); ctx.arc(x - 3, y - 3, 3, 0, Math.PI * 2); ctx.fill();
+  // eyes look where Pip is flying
+  const ex = Math.cos(pip.look) * 2, ey = Math.sin(pip.look) * 1.5;
+  ctx.fillStyle = "#3a2a10";
+  ctx.beginPath(); ctx.arc(x - 3 + ex, y - 1 + ey, 1.4, 0, Math.PI * 2); ctx.arc(x + 3 + ex, y - 1 + ey, 1.4, 0, Math.PI * 2); ctx.fill();
+  // dash readiness ring
+  if (state === "play" && dashCd > 0) {
+    ctx.strokeStyle = "rgba(244,211,94,0.5)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, 15, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - dashCd / S.dashCooldown)); ctx.stroke();
+  }
+}
+function drawFairy(x, y, time, i, color, alpha = 1) {
+  ctx.globalCompositeOperation = "lighter";
+  glow(x, y, 20, color, 0.85 * alpha);
+  ctx.globalCompositeOperation = "source-over";
+  ctx.globalAlpha = alpha;
+  const flap = 0.5 + Math.abs(Math.sin(time * 14 + i * 1.7)) * 0.5;
+  ctx.fillStyle = "rgba(232,238,252,0.6)";
+  ctx.beginPath(); ctx.ellipse(x - 5, y - 3, 5.5 * flap, 3, -0.6, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x + 5, y - 3, 5.5 * flap, 3, 0.6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, 4.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.7)"; ctx.beginPath(); ctx.arc(x - 1.2, y - 1.2, 1.4, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = 1;
+}
+function drawBug(b) {
+  ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.dir);
+  ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.beginPath(); ctx.ellipse(1, 3, 11, 7, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = COL.rustDark; ctx.lineWidth = 1.5;
+  for (let k = -1; k <= 1; k++) {
+    const w = Math.sin(b.wob * 4 + k) * 2;
+    ctx.beginPath(); ctx.moveTo(k * 5, -6); ctx.lineTo(k * 5 + w, -13); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(k * 5, 6); ctx.lineTo(k * 5 - w, 13); ctx.stroke();
+  }
+  ctx.fillStyle = COL.rust;
+  ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-10, -8, 20, 16, 5); else ctx.rect(-10, -8, 20, 16); ctx.fill();
+  ctx.fillStyle = COL.rustHi; ctx.fillRect(-7, -6, 4, 3); ctx.fillRect(2, 3, 3, 2);
+  ctx.strokeStyle = COL.rustDark; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-2, -8); ctx.lineTo(-2, 8); ctx.stroke();
+  ctx.fillStyle = "#ffd9b0";
+  ctx.beginPath(); ctx.arc(7, -3, 1.7, 0, Math.PI * 2); ctx.arc(7, 3, 1.7, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+function drawHound(h, time) {
+  // telegraph line
+  if (h.phase !== "run") {
+    const len = Math.hypot(W, H);
+    const a = h.phase === "aim" ? 0.25 + 0.25 * Math.abs(Math.sin(time * 10)) : 0.85;
+    ctx.strokeStyle = hexA(COL.warn, a); ctx.lineWidth = h.phase === "aim" ? 2 : 4;
+    ctx.setLineDash(h.phase === "aim" ? [10, 8] : []);
+    ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(h.x + Math.cos(h.ang) * len, h.y + Math.sin(h.ang) * len); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.ang);
+  ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.beginPath(); ctx.ellipse(1, 4, 17, 9, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = COL.rustDark;
+  ctx.beginPath(); ctx.moveTo(8, -6); ctx.lineTo(14, -13); ctx.lineTo(15, -4); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(8, 6); ctx.lineTo(14, 13); ctx.lineTo(15, 4); ctx.fill();
+  ctx.fillStyle = COL.rust;
+  ctx.beginPath(); ctx.ellipse(0, 0, 16, 9, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(12, 0, 8, 6.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = COL.rustHi; ctx.fillRect(-10, -5, 6, 3); ctx.fillRect(-2, 3, 5, 2);
+  ctx.fillStyle = COL.warn;
+  ctx.beginPath(); ctx.arc(15, -2.5, 1.8, 0, Math.PI * 2); ctx.arc(15, 2.5, 1.8, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+function drawHeart(x, y, s, fill, pulse = 1) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(s * pulse, s * pulse);
+  ctx.beginPath(); ctx.moveTo(0, 4);
+  ctx.bezierCurveTo(-7, -2, -4, -8, 0, -4); ctx.bezierCurveTo(4, -8, 7, -2, 0, 4);
+  ctx.fillStyle = fill ? COL.heart : "rgba(232,238,252,0.18)"; ctx.fill();
+  ctx.restore();
+}
+function drawRing(r) {
+  const a = r.life / r.max, age = r.max - r.life;
+  ctx.beginPath(); r.poly.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.closePath();
+  ctx.fillStyle = `rgba(244,211,94,${0.18 * a})`; ctx.fill();
+  ctx.strokeStyle = `rgba(244,211,94,${0.9 * a})`; ctx.lineWidth = 2.5; ctx.stroke();
+  if (r.n > 0 && !reduceMotion) {
+    const sr = r.rad * (0.6 + age * 2.2);
+    ctx.strokeStyle = `rgba(244,211,94,${0.5 * a})`; ctx.lineWidth = 3 * a + 0.5;
+    ctx.beginPath(); ctx.arc(r.cx, r.cy, sr, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.globalAlpha = Math.min(1, a * 1.5);
+  for (const m of r.mush) {
+    const s = m.s * clamp((age - m.d) / 0.15, 0, 1);
+    if (s <= 0) continue;
+    ctx.fillStyle = "#d9cdb0"; ctx.fillRect(m.x - 1.5 * s, m.y - 1 * s, 3 * s, 6 * s);
+    ctx.fillStyle = COL.cap; ctx.beginPath(); ctx.ellipse(m.x, m.y - 1 * s, 6 * s, 4.5 * s, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = "rgba(244,211,94,0.8)"; ctx.beginPath(); ctx.arc(m.x - 2 * s, m.y - 3 * s, 1 * s, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+function drawPreview(p, time) {
+  const a = clamp(1 - p.d / S.ringPreview, 0.25, 1);
+  ctx.beginPath(); p.poly.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.closePath();
+  ctx.fillStyle = `rgba(244,211,94,${0.06 * a})`; ctx.fill();
+  ctx.setLineDash([4, 7]); ctx.lineDashOffset = -time * 30;
+  ctx.strokeStyle = `rgba(244,211,94,${0.55 * a})`; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.strokeStyle = `rgba(244,211,94,${0.9 * a})`; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(p.at.x, p.at.y, 7 + Math.sin(time * 10) * 1.5, 0, Math.PI * 2); ctx.stroke();
+}
+function drawMarker(p, time) {
+  const a = 0.5 + 0.5 * Math.abs(Math.sin(time * 12));
+  ctx.save(); ctx.translate(p.mx, p.my);
+  const ang = Math.atan2(H / 2 - p.my, W / 2 - p.mx);
+  ctx.rotate(ang);
+  ctx.fillStyle = hexA(COL.warn, 0.35 + 0.5 * a);
+  ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(-5, -6); ctx.lineTo(-2, 0); ctx.lineTo(-5, 6); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function draw(time) {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  if (bg) ctx.drawImage(bg, 0, 0, W, H);
+  if (!pip) return;
+  const moving = state === "play" || state === "title";
+
+  // twinkling stars and fireflies
+  for (const s of twinkles) { const a = 0.3 + 0.5 * Math.abs(Math.sin(time * 1.5 + s.ph)); ctx.fillStyle = hexA(COL.mist, a); ctx.beginPath(); ctx.arc(s.x, s.y, s.s, 0, Math.PI * 2); ctx.fill(); }
+  ctx.globalCompositeOperation = "lighter";
+  for (const f of fireflies) {
+    if (moving) { f.x += (f.vx + Math.sin(time + f.ph) * 6) * 0.016; f.y += (f.vy + Math.cos(time * 0.8 + f.ph) * 5) * 0.016; }
+    if (f.x < -10) f.x = W + 10; if (f.x > W + 10) f.x = -10; if (f.y < H * 0.25) f.vy = Math.abs(f.vy); if (f.y > H) f.vy = -Math.abs(f.vy);
+    const a = Math.max(0, Math.sin(time * 1.3 + f.ph)) * 0.6;
+    glow(f.x, f.y, 9, "#d8f27a", a);
+  }
+  ctx.globalCompositeOperation = "source-over";
+
+  ctx.save();
+  if (shakeT > 0) ctx.translate(rand(-S.shake, S.shake), rand(-S.shake, S.shake));
+
+  // dawn glow creeping in during the last 30 seconds
+  const d = clamp((t - (S.nightSeconds - 30)) / 30, 0, 1);
+  if (d > 0 && state !== "title") {
+    const g = ctx.createLinearGradient(0, H, 0, 0);
+    g.addColorStop(0, `rgba(255,170,110,${0.3 * d})`); g.addColorStop(0.6, `rgba(255,140,170,${0.1 * d})`); g.addColorStop(1, "rgba(255,170,110,0)");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+
+  rings.forEach(drawRing);
+  if (preview && state === "play") drawPreview(preview, time);
+  pending.forEach((p) => drawMarker(p, time));
+
+  // lost fairies, with a pulsing halo (fled ones blink before they go)
+  for (const f of lost) {
+    const blink = f.fled && f.life < 2 ? (Math.floor(f.life * 8) % 2 ? 0.35 : 1) : 1;
+    const p = 1 + Math.sin(f.ph * 4) * 0.15;
+    ctx.strokeStyle = hexA(f.color, 0.5 * blink); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(f.x, f.y, 14 * p, 0, Math.PI * 2); ctx.stroke();
+    drawFairy(f.x, f.y + Math.sin(f.ph * 2) * 3, time, 9, f.color, blink);
+  }
+
+  // trail ribbon, tapering toward the tail
+  const fp = fairyPositions();
+  if (fp.length) {
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    let px = pip.x, py = pip.y;
+    ctx.globalCompositeOperation = "lighter";
+    fp.forEach((p, i) => {
+      const k = 1 - i / (fp.length + 1);
+      ctx.strokeStyle = hexA(trail[i], 0.28 * k + 0.06); ctx.lineWidth = 2 + 4 * k;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(p.x, p.y); ctx.stroke();
+      px = p.x; py = p.y;
+    });
+    ctx.globalCompositeOperation = "source-over";
+  }
+  for (let i = fp.length - 1; i >= 0; i--) drawFairy(fp[i].x, fp[i].y, time, i, trail[i]);
+
+  bugs.forEach(drawBug);
+  hounds.forEach((h) => drawHound(h, time));
+
+  if (!(invuln > 0 && Math.floor(invuln * 12) % 2 === 0)) drawPip(pip.x, pip.y, time);
+
+  ctx.globalCompositeOperation = "lighter";
+  for (const p of particles) {
+    ctx.globalAlpha = clamp(p.life / p.max, 0, 1);
+    ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = "source-over";
+
+  ctx.textAlign = "center";
+  for (const x of texts) {
+    const a = clamp(x.life / x.max, 0, 1), pop = 1 + Math.max(0, (x.life - x.max + 0.12) / 0.12) * 0.3;
+    ctx.globalAlpha = a;
+    ctx.font = `${Math.round(x.size * pop)}px "IM Fell English SC", Georgia, serif`;
+    ctx.lineWidth = 4; ctx.strokeStyle = "rgba(11,18,38,0.6)"; ctx.strokeText(x.text, x.x, x.y);
+    ctx.fillStyle = x.color; ctx.fillText(x.text, x.x, x.y);
+    if (x.sub) { ctx.font = `700 12px Nunito, system-ui, sans-serif`; ctx.fillStyle = COL.mist; ctx.fillText(x.sub, x.x, x.y + 16); }
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // hit and celebration flashes
+  if (hitFlash > 0) {
+    const v = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.7);
+    v.addColorStop(0, "rgba(255,90,90,0)"); v.addColorStop(1, `rgba(255,90,90,${0.45 * hitFlash / 0.4})`);
+    ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+  }
+  if (bigFlash > 0 && !reduceMotion) { ctx.fillStyle = `rgba(255,240,190,${0.22 * bigFlash / 0.35})`; ctx.fillRect(0, 0, W, H); }
+
+  if (state !== "title") drawHud(time);
+}
+
+function drawHud(time) {
+  shownScore += (score - shownScore) * 0.18;
+  if (Math.abs(score - shownScore) < 0.5) shownScore = score;
+  ctx.textAlign = "left";
+  ctx.fillStyle = COL.mist;
+  ctx.font = `30px "IM Fell English SC", Georgia, serif`;
+  ctx.fillText(Math.round(shownScore).toLocaleString("en-US"), 16, 38);
+  const lowPulse = hearts === 1 && !gentle ? 1 + Math.max(0, Math.sin(time * 5.7)) * 0.15 : 1;
+  for (let i = 0; i < S.hearts; i++) drawHeart(24 + i * 20, 56, 1.25, i < hearts, i === 0 ? lowPulse : 1);
+  if (streak > 1) {
+    ctx.font = `700 13px Nunito, system-ui, sans-serif`; ctx.fillStyle = COL.pollen;
+    ctx.fillText(`streak ×${streak}`, 16, 84);
+    ctx.fillStyle = "rgba(244,211,94,0.25)"; ctx.fillRect(16, 90, 70, 3);
+    ctx.fillStyle = COL.pollen; ctx.fillRect(16, 90, 70 * (streakT / S.streakWindow), 3);
+  }
+
+  ctx.textAlign = "right";
+  ctx.font = `700 13px Nunito, system-ui, sans-serif`;
+  ctx.fillStyle = COL.moss;
+  ctx.fillText(`${trail.length} ${trail.length === 1 ? "fairy" : "fairies"}`, W - 16, 32);
+  ctx.fillStyle = COL.soft;
+  ctx.fillText(gentle ? "Gentle night" : best > 0 ? `best ${best.toLocaleString("en-US")}` : "", W - 16, 50);
+
+  // moon crossing the sky until dawn
+  const cw = Math.min(200, W * 0.3), cx = W / 2, y = 26;
+  const prog = clamp(t / S.nightSeconds, 0, 1);
+  ctx.strokeStyle = "rgba(170,182,214,0.3)"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx - cw / 2, y); ctx.lineTo(cx + cw / 2, y); ctx.stroke();
+  ctx.strokeStyle = "rgba(244,211,94,0.7)";
+  ctx.beginPath(); ctx.moveTo(cx - cw / 2, y); ctx.lineTo(cx - cw / 2 + cw * prog, y); ctx.stroke();
+  const mx = cx - cw / 2 + cw * prog;
+  ctx.fillStyle = COL.mist; ctx.beginPath(); ctx.arc(mx, y, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#16213f"; ctx.beginPath(); ctx.arc(mx + 3, y - 2, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "rgba(255,170,110,0.9)"; ctx.beginPath(); ctx.arc(cx + cw / 2 + 10, y, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.textAlign = "center"; ctx.fillStyle = COL.soft; ctx.font = `700 11px Nunito, system-ui, sans-serif`;
+  ctx.fillText(`dawn in ${fmt(S.nightSeconds - t)}`, cx, y + 20);
+
+  // announcements
+  if (announce) {
+    const a = clamp(Math.min(announce.life, announce.max - announce.life) / 0.3, 0, 1);
+    ctx.globalAlpha = a; ctx.font = `26px "IM Fell English SC", Georgia, serif`;
+    ctx.lineWidth = 5; ctx.strokeStyle = "rgba(11,18,38,0.6)"; ctx.strokeText(announce.text, W / 2, 96);
+    ctx.fillStyle = announce.color; ctx.fillText(announce.text, W / 2, 96);
+    ctx.globalAlpha = 1;
+  }
+
+  // gentle hints in the first seconds
+  if (state === "play") {
+    let hint = "", a = 1;
+    if (t < 16) {
+      a = clamp(Math.min(t, 16 - t) / 1.2, 0, 1);
+      hint = t < 5 ? "Fly into the glowing fairy to add it to your trail" : t < 11 ? "Loop back across your trail to close a fairy ring" : "Space to dash. Chain rings for a streak";
+    } else if (trail.length === 0) {
+      hint = "Your trail is gone. Catch a lost fairy to make rings again";
+    }
+    if (hint) {
+      ctx.globalAlpha = a; ctx.fillStyle = COL.mist; ctx.font = `700 14px Nunito, system-ui, sans-serif`;
+      ctx.fillText(hint, W / 2, H - 28); ctx.globalAlpha = 1;
+    }
+  }
+}
+
+// ---------- main loop ----------
+let lastTime = performance.now(), demoA = 0;
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastTime) / 1000);
+  lastTime = now;
+  if (state === "play") {
+    if (hitstop > 0) hitstop -= dt;
+    else update(dt);
+  } else if (state === "title" && pip) {
+    // the title screen shows Pip gently circling
+    demoA += dt;
+    pip.x = W / 2 + Math.cos(demoA * 1.3) * Math.min(160, W * 0.28);
+    pip.y = H * 0.86 + Math.sin(demoA * 1.3) * Math.min(40, H * 0.06);
+    pip.vx = -Math.sin(demoA * 1.3) * 200; pip.vy = Math.cos(demoA * 1.3) * 60;
+    pip.look = Math.atan2(pip.vy, pip.vx);
+    const last = path[path.length - 1];
+    if (!last || Math.hypot(pip.x - last.x, pip.y - last.y) >= 3) path.push({ x: pip.x, y: pip.y, id: ++pid });
+    prunePath();
+  } else if (state === "over" || state === "dawn") {
+    stepEffects(dt);
+  }
+  draw(now / 1000);
+  requestAnimationFrame(frame);
+}
+
+$("bestTitle").textContent = best > 0 ? `Best: ${best.toLocaleString("en-US")}` : "";
+new ResizeObserver(resize).observe(stage);
+resize();
+reset();
+lost = [];
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => {});
+requestAnimationFrame(frame);
+</script>
+
+</body>
+</html>
